@@ -3,18 +3,17 @@ from http import HTTPStatus
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import ResponseValidationError
+from fastapi.exceptions import RequestValidationError
 
-from .back_api import back_router
-
+from auth import auth_router
+from furniture import back_router
 
 __version__ = (0, 0, 0)
 
 
 def build_app() -> FastAPI:
-
     app = FastAPI(
-        version=__version__,
+        version='.'.join(map(str, __version__)),
         title='FurnitureProject'
     )
 
@@ -33,14 +32,14 @@ def build_app() -> FastAPI:
             content={'detail': f'{exc}'},
         )
 
-    @app.exception_handler(ResponseValidationError)
+    @app.exception_handler(RequestValidationError)
     def bad_request(request: Request, exc: Exception):
         return JSONResponse(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={'detail': f'Проверьте валидность отправленного JSON: {exc}'}
         )
 
+    app.include_router(auth_router)
     app.include_router(back_router)
-
 
     return app
