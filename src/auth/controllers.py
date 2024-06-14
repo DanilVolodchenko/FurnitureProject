@@ -2,7 +2,7 @@ from typing import Optional, Type
 
 from sqlalchemy.orm import Session
 
-from src.abc import ControllerABC, Service
+from src.abc import Controller, Service
 from src.config import settings
 from . import schemas, models
 from .services import UserService
@@ -10,7 +10,7 @@ from .exceptions import UserNotFound, IncorrectToken, UserAlreadyExists
 from .security import verify_password, get_password_hash, get_decoded_jwt_token
 
 
-class UserController(ControllerABC[UserService]):
+class UserController(Controller[UserService]):
 
     def __init__(
             self, session: Session,

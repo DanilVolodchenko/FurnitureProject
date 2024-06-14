@@ -3,7 +3,7 @@ from typing import Type, Optional, get_args
 from sqlalchemy.orm import Session, Query
 
 
-class ControllerABC[T]:
+class Controller[T]:
 
     def __init__(self, session: Session, service: T) -> None:
         self.__service = service
