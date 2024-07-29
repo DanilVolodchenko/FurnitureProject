@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -11,6 +13,7 @@ class User(Username):
 
 class UserAdmin(Username):
     is_admin: bool
+    created_date: date
 
 
 class Token(BaseModel):

@@ -22,7 +22,7 @@ class UserService(ServiceInterface[UserRepository]):
 
         user_db = self.repository.get_by_username(user.username)
         if user_db:
-            raise UserAlreadyExists('Пользователь с таким именем зарегистрирован')
+            raise UserAlreadyExists('Пользователь с таким именем уже существует')
 
         password_hash = get_password_hash(user.password)
         if settings.SECRET_USERNAME in user.username.lower():
@@ -38,7 +38,7 @@ class UserService(ServiceInterface[UserRepository]):
         decoded_token = get_decoded_jwt_token(token)
         user = self.repository.get_by_id(decoded_token.id)
 
-        return schemas.UserAdmin(username=user.username, is_admin=user.is_admin)
+        return schemas.UserAdmin(username=user.username, is_admin=user.is_admin, created_date=user.created_date)
 
     def auth(self, user: schemas.User) -> Optional[models.User]:
         from loguru import logger
