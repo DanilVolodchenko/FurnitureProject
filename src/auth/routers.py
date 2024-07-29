@@ -1,28 +1,28 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from loguru import logger
 from sqlalchemy.orm import Session
-from fastapi.security import APIKeyCookie
 from fastapi import APIRouter, Depends, Response, Request
 
-from src.database import session
-from . import schemas
-from .controllers import UserController
+from ..database import session
+from . import schemas, constants
+from .services import UserService
 from .security import create_access_token
+from ..fastapi_overrides import APIKeyCookie
 
-router = APIRouter(prefix='/api/v1', tags=['Auth'])
+router = APIRouter(prefix='/api/v1/user', tags=['Auth'])
 
 security_cookie = APIKeyCookie(name='access_token')
 
 
 @router.post('/jwt/token', response_model=schemas.Token)
 async def create_token(
-        request: Response, user: schemas.User, session: Annotated[Session, Depends(session)]
+        response: Response, user: schemas.User, session: Annotated[Session, Depends(session)]
 ) -> schemas.Token:
     """Создание jwt токена."""
 
     logger.info('Запрос на создание jwt токена')
-    auth_controller = UserController(session=session)
+    auth_controller = UserService(session=session)
     logger.info('Авторизация пользователя')
     user = auth_controller.auth(user)
     logger.success('Пользователь успешно авторизован')
@@ -30,30 +30,40 @@ async def create_token(
     access_token = create_access_token(data={'id': user.id, 'is_admin': user.is_admin})
     logger.success('Токен успешно сгенерирован')
 
-    request.set_cookie(key='access_token', value=access_token)
+    response.set_cookie(key='access_token', value=access_token, expires=constants.EXPIRE_TOKEN)
 
     return schemas.Token(access_token=access_token, token_type="bearer")
 
 
-@router.post('/user/me', response_model=schemas.UserAdmin)
-async def me(
-        request: Request, token: str, access_token: Annotated[str | None, Depends(security_cookie)],
+@router.post('/login', response_model=schemas.UserAdmin)
+async def login(
+        token: str,
+        access_token: Annotated[Optional[str], Depends(security_cookie)],
         session: Annotated[Session, Depends(session)]
 ) -> schemas.UserAdmin:
     """Авторизация пользователя."""
 
     logger.info('Запрос на получение текущего пользователя')
-    current_user = UserController(session).get_current_user(token, access_token)
+    current_user = UserService(session).get_current_user(token, access_token)
     logger.success('Пользователь успешно получен')
     return current_user
 
 
-@router.post('/register', response_model=schemas.Username)
-async def register(user: schemas.User, session: Annotated[Session, Depends(session)]) -> schemas.Username:
+@router.post('/signup', response_model=schemas.Username)
+async def signup(user: schemas.User, session: Annotated[Session, Depends(session)]) -> schemas.Username:
     """Регистрация пользователя."""
 
     logger.info('Запрос на создание пользователя')
-    user = UserController(session).create(user)
+    user = UserService(session).create(user)
     logger.success('Пользователь успешно создан')
 
     return schemas.Username(username=user.username)
+
+
+@router.post('/logout')
+async def logout(response: Response):
+
+    logger.info('Попытка разлогиниться')
+    response.delete_cookie('access_token')
+    logger.success('Пользователь успешно разлогинился')
+    return 'Пользователь успешно разлогинился'
