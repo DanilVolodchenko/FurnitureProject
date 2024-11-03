@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 from ..interfaces import RepositoryInterface, ServiceInterface
 from ..config import settings
+from src.common.exeptions import IncorrectToken
 from . import schemas, models
 from .repositories import UserRepository
-from .exceptions import UserNotFound, IncorrectToken, UserAlreadyExists
+from .exceptions import UserNotFound, UserAlreadyExists
 from .security import verify_password, get_password_hash, get_decoded_jwt_token
 
 

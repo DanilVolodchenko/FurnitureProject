@@ -1,1 +1,0 @@
-EXPIRE_TOKEN = 60 * 60 * 48

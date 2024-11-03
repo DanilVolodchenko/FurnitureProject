@@ -2,17 +2,16 @@ from typing import Annotated, Optional
 
 from loguru import logger
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, Response, Request
+from fastapi import APIRouter, Depends, Response
 
+from . import schemas
 from ..database import session
-from . import schemas, constants
 from .services import UserService
 from .security import create_access_token
-from ..fastapi_overrides import APIKeyCookie
+from ..common.security import security_cookie
+from ..config import settings
 
 router = APIRouter(prefix='/api/v1/user', tags=['Auth'])
-
-security_cookie = APIKeyCookie(name='access_token')
 
 
 @router.post('/jwt/token', response_model=schemas.Token)
@@ -30,7 +29,7 @@ async def create_token(
     access_token = create_access_token(data={'id': user.id, 'is_admin': user.is_admin})
     logger.success('Токен успешно сгенерирован')
 
-    response.set_cookie(key='access_token', value=access_token, expires=constants.EXPIRE_TOKEN)
+    response.set_cookie(key='access_token', value=access_token, expires=settings.EXPIRE_TOKEN)
 
     return schemas.Token(access_token=access_token, token_type="bearer")
 
@@ -62,7 +61,6 @@ async def signup(user: schemas.User, session: Annotated[Session, Depends(session
 
 @router.post('/logout')
 async def logout(response: Response):
-
     logger.info('Попытка разлогиниться')
     response.delete_cookie('access_token')
     logger.success('Пользователь успешно разлогинился')
