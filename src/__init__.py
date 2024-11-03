@@ -1,24 +1,32 @@
-from http import HTTPStatus
+from typing import Any
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, Response, PlainTextResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from loguru import logger
 
 from .auth import auth_router
 from .furniture import back_router
-from .default_response import DefaultResponse
+from .common.schemas import BaseResponseStructural
 
-logger.add('log/file_{time:YYYY-MM-DD}.log', retention=7, level='INFO')
+logger.add('log/file_{time:DD-MM-YYYY}.log', retention=7, level='INFO')
 
 __version__ = (0, 0, 0)
+
+
+class BaseResponse(JSONResponse):
+    def __init__(self, content: Any, status_code: int = 200, *args, **kwargs) -> None:
+        content = BaseResponseStructural(content=content, error=False, error_desc='').model_dump()
+        super().__init__(content, status_code, *args, **kwargs)
+
 
 app = FastAPI(
     version='.'.join(map(str, __version__)),
     title='FurnitureProject',
-    default_response_class=DefaultResponse,
+    default_response_class=BaseResponse,
     debug=False,
 )
 
@@ -32,27 +40,36 @@ app.add_middleware(
 
 
 @app.exception_handler(Exception)
-def error_handler(request: Request, exc: Exception):
-    return DefaultResponse(
-        content=f'{exc}',
-        status_code=HTTPStatus.BAD_REQUEST
+def error_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        {
+            'content': '',
+            'error': True,
+            'error_desc': f'{exc.__class__.__name__} {exc}'
+        },
     )
-    # JSONResponse(
-    #     status_code=HTTPStatus.BAD_REQUEST,
-    #     content={'detail': f'{exc}'},
-    # )
 
 
 @app.exception_handler(RequestValidationError)
-def bad_request(request: Request, exc: Exception):
-    return DefaultResponse(
-        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        content=f'Проверьте валидность отправленного JSON: {exc}'
+def bad_request(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        {
+            'content': '',
+            'error': True,
+            'error_desc': f'{exc.__class__.__name__} {exc}'
+        },
     )
-    # return JSONResponse(
-    #     status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-    #     content={'detail': f'Проверьте валидность отправленного JSON: {exc}'}
-    # )
+
+
+@app.exception_handler(ValidationError)
+def bad_request(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        {
+            'content': '',
+            'error': True,
+            'error_desc': f'{exc.__class__.__name__} {exc}'
+        },
+    )
 
 
 app.include_router(auth_router)
