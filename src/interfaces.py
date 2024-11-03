@@ -36,12 +36,13 @@ class RepositoryInterface[T: Base]:
 
         return item
 
-    def update(self, item: T, new_item: BaseModel) -> T:
+    def update(self, item: T, new_item: BaseModel, flush: bool = False) -> T:
         for key, value in new_item.model_dump().items():
             if hasattr(item, key):
                 setattr(item, key, value)
 
-        self.session.commit()
+        if flush:
+            self.session.flush()
         return item
 
 
